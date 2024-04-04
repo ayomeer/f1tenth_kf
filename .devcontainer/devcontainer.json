@@ -1,0 +1,22 @@
+{
+    "remoteUser": "ros",
+    "name": "ros-devcontainer",
+    "updateRemoteUserUID": false, 
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "ros-environment",
+    "workspaceFolder": "/home/ros/ros_ws",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools-extension-pack",
+                "ms-python.python",
+                "ms-iot.vscode-ros",
+                "redhat.vscode-xml",
+                "yy0931.save-as-root"
+            ]
+        }
+    },
+    "shutdownAction": "stopCompose"
+}

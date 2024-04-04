@@ -1,0 +1,21 @@
+services:
+  ros-environment: 
+    image: ayomeer/ros-devcontainer:galactic
+    user: ros #"1000:1000"
+    container_name: ros-devcontainer
+    network_mode: host  
+
+    volumes:
+      - ../vesc/:/home/ros/ros_ws/vesc/      
+      - ../transport_drivers/:/home/ros/ros_ws/transport_drivers/       
+      - /dev/:/dev/  # pass through devices (xpad, sensors)
+      - /tmp/.X11-unix:/tmp/.X11-unix # display
+
+    device_cgroup_rules:
+      - 'c *:* rmw'
+      
+    environment:
+     - DISPLAY=$DISPLAY
+    
+    stdin_open: true
+    tty: true
