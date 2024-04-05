@@ -6,8 +6,9 @@ services:
     network_mode: host  
 
     volumes:
-      - ../vesc/:/home/ros/ros_ws/vesc/      
-      - ../transport_drivers/:/home/ros/ros_ws/transport_drivers/       
+      - ../config/:/home/ros/config/
+      - ../vesc/:/home/ros/ros_ws/src/vesc/      
+      - ../transport_drivers/:/home/ros/ros_ws/src/transport_drivers/       
       - /dev/:/dev/  # pass through devices (xpad, sensors)
       - /tmp/.X11-unix:/tmp/.X11-unix # display
 
@@ -16,6 +17,6 @@ services:
       
     environment:
      - DISPLAY=$DISPLAY
-    
+
     stdin_open: true
     tty: true

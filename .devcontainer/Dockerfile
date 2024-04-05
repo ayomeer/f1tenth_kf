@@ -8,28 +8,26 @@
 FROM ubuntu:20.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ROS_DISTRO=galactic
 
 # automatic buildx arg
 ARG TARGETPLATFORM
 
 RUN case "${TARGETPLATFORM}" in \
   "linux/amd64") \
-    # Install language 
     apt-get update && apt-get install -y \
     locales \
     && locale-gen en_US.UTF-8 \
     && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/* \
-    ENV LANG en_US.UTF-8 \
-    # Install timezone
-    ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
+    && export LANG=en_US.UTF-8 \
+    && ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
     && export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install -y tzdata \
     && dpkg-reconfigure --frontend noninteractive tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    # update and cleanup
-    apt-get update && apt-get -y upgrade \
+    && apt-get update && apt-get -y upgrade \
     && rm -rf /var/lib/apt/lists/* ;; \  
   "linux/arm64/v8") \
     echo "Building for jetson's arm64 plarform" ;; \
@@ -50,7 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ROS2
-ENV ROS_DISTRO=galactic
+
 
 RUN sudo add-apt-repository universe \
   && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
@@ -96,6 +94,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ros-${ROS_DISTRO}-image-transport-plugins \
   ros-${ROS_DISTRO}-rqt-image-view \
   ros-${ROS_DISTRO}-v4l2-camera \
+  ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
   v4l-utils \
   iputils-ping \
   net-tools \
@@ -113,7 +112,7 @@ ARG USERNAME=ros
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-# Create a non-root user
+# Create a non-root user "ros"
 RUN groupadd --gid $USER_GID $USERNAME \
   && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
   # Add sudo support for the non-root user
@@ -123,12 +122,16 @@ RUN groupadd --gid $USER_GID $USERNAME \
   && chmod 0440 /etc/sudoers.d/$USERNAME \
   && rm -rf /var/lib/apt/lists/*
 
-USER ros
-RUN mkdir -p ros_ws/src
-USER root
+# Give new user rights to its own home dir
+RUN chown $USER_UID:$USER_GID /home/$USERNAME
 
 # Use default bashrc for user
 RUN cp /etc/skel/.bashrc /home/$USERNAME
+
+# Create ros_ws with ros user to avoid permission issues
+USER ros
+RUN mkdir -p ~/ros_ws/src
+USER root
 
 # Set up autocompletion for user
 RUN apt-get update && apt-get install -y git-core bash-completion \
@@ -136,20 +139,18 @@ RUN apt-get update && apt-get install -y git-core bash-completion \
   && echo "if [ -f /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash ]; then source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash; fi" >> /home/$USERNAME/.bashrc \
   && rm -rf /var/lib/apt/lists/* 
 
-# Give new user rights to its own home dir
-RUN chown $USER_UID:$USER_GID /home/$USERNAME
-
-# Switch to cycloneDDS unicast for Docker compatibility
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ros-${ROS_DISTRO}-rmw-cyclonedds-cpp && \
-    echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> /home/$USERNAME/.bashrc
-
-# write DDS config based on automatic buildx arg (arm64 -> Jetson, else -> pc)
-# TODO: write xml files and run them here
-
-# RUN echo "export CYCLONEDDS_URI=/opt/cycloneConfig.xml" >> /home/$USERNAME/.bashrc
 
 
+
+# Add CycloneDDS source command to bashrc (actual config mounted with project files on container startup)
+RUN case "${TARGETPLATFORM}" in \
+  "linux/amd64") \
+    echo "source /home/ros/config/cycloneEnv_pc.sh" >> /home/ros/.bashrc ;; \
+  "linux/arm64/v8") \
+    echo "source /home/ros/config/cycloneEnv_jetson.sh" >> /home/ros/.bashrc  ;; \
+  *) \
+    echo "Building for unexpected platform!" ;; \
+esac;
 
 # fix jstest first time launch error
 RUN mkdir -p /home/$USERNAME/.config

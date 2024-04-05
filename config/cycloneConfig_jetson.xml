@@ -1,0 +1,21 @@
+
+
+<!--Jetson config (net=host)-->
+<!-- Ref: https://iroboteducation.github.io/create3_docs/setup/xml-config/#cyclone-dds-->
+<?xml version="1.0"?>
+<CycloneDDS>
+  <Domain id="any">
+    <General>
+      <NetworkInterfaceAddress name="wlan0"/>
+      <AllowMulticast>false</AllowMulticast>
+      <EnableMulticastLoopback>true</EnableMulticastLoopback>
+    </General>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <Peers>
+        <Peer Address="${DEVPC_IP}"/>
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>
+
