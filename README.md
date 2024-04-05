@@ -4,6 +4,7 @@
 - Run through Ubuntu Setup
 - Run through NVidia Jetpack Setup
 - Run setup scripts for ayomeer/ros-devconainer:galactic
+- Install docker-compose: `sudo apt-get install docker-compose`
 
 Networking:
 - Registered Wifi module's MAC address with IT department to access student VLAN
