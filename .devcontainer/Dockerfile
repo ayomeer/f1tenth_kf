@@ -1,3 +1,6 @@
+# syntax = docker/dockerfile:1.2
+# ^ Enable BuildKit features for apt Cache Mounts
+
 ##############################################
 # Created from template ros2.dockerfile.jinja
 ##############################################
@@ -7,13 +10,14 @@
 ###########################################
 FROM ubuntu:20.04 AS base
 
+ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
 ENV ROS_DISTRO=galactic
 
-# automatic buildx arg
-ARG TARGETPLATFORM
-
-RUN case "${TARGETPLATFORM}" in \
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+RUN \
+  --mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked \
+  case "$TARGETPLATFORM" in \
   "linux/amd64") \
     apt-get update && apt-get install -y \
     locales \
@@ -29,15 +33,17 @@ RUN case "${TARGETPLATFORM}" in \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get update && apt-get -y upgrade \
     && rm -rf /var/lib/apt/lists/* ;; \  
-  "linux/arm64/v8") \
-    echo "Building for jetson's arm64 plarform" ;; \
+  "linux/arm64") \
+    echo "Building for jetson's arm64 platform" ;; \
   *) \
     echo "Building for unexpected platform!" ;; \
 esac;
 
 
 # Install common programs
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN \
+  --mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
     lsb-release \
@@ -48,9 +54,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ROS2
-
-
-RUN sudo add-apt-repository universe \
+RUN \
+  --mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked \
+  sudo add-apt-repository universe \
   && curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
   && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null \
   && apt-get update && apt-get install -y --no-install-recommends \
@@ -74,39 +80,8 @@ ENV DEBIAN_FRONTEND=
 ##############################################
 FROM base AS dev
 
+ARG TARGETPLATFORM
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  bash-completion \
-  build-essential \
-  cmake \
-  gdb \
-  git \
-  openssh-client \
-  python3-argcomplete \
-  python3-pip \
-  ros-dev-tools \
-  ros-${ROS_DISTRO}-ament-* \
-  ros-${ROS_DISTRO}-xacro \
-  ros-${ROS_DISTRO}-joint-state-publisher \
-  ros-${ROS_DISTRO}-joint-state-publisher-gui \
-  ros-${ROS_DISTRO}-demo-nodes-py \
-  ros-${ROS_DISTRO}-demo-nodes-cpp \
-  ros-${ROS_DISTRO}-image-transport-plugins \
-  ros-${ROS_DISTRO}-rqt-image-view \
-  ros-${ROS_DISTRO}-v4l2-camera \
-  ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
-  v4l-utils \
-  iputils-ping \
-  net-tools \
-  nano \
-  usbutils \
-  jstest-gtk \
-  evtest \
-  terminator \
-  && rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install ipython
-RUN rosdep init || echo "rosdep already initialized"
 
 ARG USERNAME=ros
 ARG USER_UID=1000
@@ -133,29 +108,68 @@ USER ros
 RUN mkdir -p ~/ros_ws/src
 USER root
 
+# Apt installs, first three lines cache apt installs for future builds
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+RUN \
+  --mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked \
+  apt-get update && apt-get install -y --no-install-recommends \
+  bash-completion \
+  # build-essential \
+  # cmake \
+  # gdb \
+  git \
+  git-core \
+  openssh-client \
+  python3-argcomplete \
+  python3-pip \
+  ros-dev-tools \
+  ros-${ROS_DISTRO}-ament-* \
+  # ros-${ROS_DISTRO}-xacro \
+  # ros-${ROS_DISTRO}-joint-state-publisher \
+  # ros-${ROS_DISTRO}-joint-state-publisher-gui \
+  ros-${ROS_DISTRO}-demo-nodes-py \
+  ros-${ROS_DISTRO}-demo-nodes-cpp \
+  # ros-${ROS_DISTRO}-image-transport-plugins \
+  # ros-${ROS_DISTRO}-rqt-image-view \
+  # ros-${ROS_DISTRO}-v4l2-camera \
+  # v4l-utils \
+  ros-${ROS_DISTRO}-rmw-cyclonedds-cpp \
+  iputils-ping \
+  net-tools \
+  nano \
+  usbutils \
+  jstest-gtk \
+  evtest \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN usermod -aG video $USERNAME 
+
+RUN pip3 install ipython
+RUN rosdep init || echo "rosdep already initialized"
+
 # Set up autocompletion for user
-RUN apt-get update && apt-get install -y git-core bash-completion \
-  && echo "if [ -f /opt/ros/${ROS_DISTRO}/setup.bash ]; then source /opt/ros/${ROS_DISTRO}/setup.bash; fi" >> /home/$USERNAME/.bashrc \
+RUN \
+  echo "if [ -f /opt/ros/${ROS_DISTRO}/setup.bash ]; then source /opt/ros/${ROS_DISTRO}/setup.bash; fi" >> /home/$USERNAME/.bashrc \
   && echo "if [ -f /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash ]; then source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash; fi" >> /home/$USERNAME/.bashrc \
   && rm -rf /var/lib/apt/lists/* 
 
-
-
-
 # Add CycloneDDS source command to bashrc (actual config mounted with project files on container startup)
-RUN case "${TARGETPLATFORM}" in \
-  "linux/amd64") \
-    echo "source /home/ros/config/cycloneEnv_pc.sh" >> /home/ros/.bashrc ;; \
-  "linux/arm64/v8") \
-    echo "source /home/ros/config/cycloneEnv_jetson.sh" >> /home/ros/.bashrc  ;; \
-  *) \
-    echo "Building for unexpected platform!" ;; \
-esac;
+# Note: --platform=linux/arm64/v8 resolves to $TARGETPLATFORM=linx/arm64 (!)
+RUN \ 
+if [ "$TARGETPLATFORM" = "linux/amd64" ]; \
+then \
+  echo "Setting CycloneDDS config for PC"; \
+  echo "source /home/ros/config/cycloneEnv_pc.sh" >> /home/ros/.bashrc; \
+elif [ "$TARGETPLATFORM" = "linux/arm64" ]; \
+then \
+  echo "Setting CycloneDDS config for Jetson"; \
+  echo "source /home/ros/config/cycloneEnv_jetson.sh" >> /home/ros/.bashrc; \
+else \
+  echo "Building for unexpected platform!"; \
+fi 
 
 # fix jstest first time launch error
 RUN mkdir -p /home/$USERNAME/.config
-
-RUN usermod -aG video $USERNAME 
 
 ENV DEBIAN_FRONTEND=
 ENV AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1
@@ -175,11 +189,6 @@ ENV DEBIAN_FRONTEND=
 
 # Fix setuptools version
 RUN pip3 install setuptools==58.2.0
-
-###########################################
-#  Full+Gazebo image
-###########################################
-FROM full AS gazebo
 
 ENV DEBIAN_FRONTEND=noninteractive
 # Install gazebo
@@ -201,7 +210,7 @@ EOF ">> /etc/asound.conf
 ###########################################
 #  Full+Gazebo+Nvidia image
 ###########################################
-FROM gazebo AS gazebo-nvidia
+FROM full AS nvidia
 
 ################
 # Expose the nvidia driver to allow opengl 

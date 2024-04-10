@@ -6,7 +6,7 @@
 <CycloneDDS>
   <Domain id="any">
     <General>
-      <NetworkInterfaceAddress name="wlan0"/>
+      <NetworkInterfaceAddress>wlan0</NetworkInterfaceAddress>
       <AllowMulticast>false</AllowMulticast>
       <EnableMulticastLoopback>true</EnableMulticastLoopback>
     </General>
