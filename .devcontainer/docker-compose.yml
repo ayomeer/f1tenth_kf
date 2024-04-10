@@ -14,7 +14,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix # display
 
     device_cgroup_rules:
-      - 'c *:* rmw'
+      - 'c *:* rmw' # for gamepad 
       
     environment:
      - DISPLAY=$DISPLAY

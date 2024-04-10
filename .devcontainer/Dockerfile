@@ -127,6 +127,7 @@ RUN \
   ros-${ROS_DISTRO}-xacro \
   ros-${ROS_DISTRO}-joint-state-publisher \
   ros-${ROS_DISTRO}-joint-state-publisher-gui \
+  ros-${ROS_DISTRO}-rqt-graph \
   ros-${ROS_DISTRO}-demo-nodes-py \
   ros-${ROS_DISTRO}-demo-nodes-cpp \
   # ros-${ROS_DISTRO}-image-transport-plugins \
