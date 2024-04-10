@@ -22,8 +22,8 @@ For building the images, build scripts are available in the `scripts` subdirecto
 ## Build Caching
 To quickly iterate on the images, it's useful to cache as much of the build as possible, such that parts that haven't changed since the last build can simply be loaded from cache, rather than being rebuilt. Two major techniques were used to improve build caching:
 
-[!NOTE]
-Make sure the first line of the Dockerfile reads `# syntax = docker/dockerfile:1.2` to enable BuildKit caching features.
+> [!NOTE]
+> Make sure the first line of the Dockerfile reads `# syntax = docker/dockerfile:1.2` to enable BuildKit caching features.
 
 1) [apt-caching](https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/reference.md#run---mounttypecache):
 Added the line `RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache` before starting to install packages through apt and the option `--mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked` to the `RUN` command, where apt is used. This specifies a cache for apt specifically, such that the packages that were installed in previous builds of the image and haven't changed, do not have to be downloaded and installed again on the next build. Specifying `id=${TARGETPLATFORM}` also distinguishes these caches between architectures, since they use differnet versions of the packages.
