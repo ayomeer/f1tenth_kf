@@ -11,7 +11,7 @@ The images available on Dockerhub are built for both amd64 and arm64 architectur
 
 > [!NOTE]
 > This Docker setup uses advances features only supported by the BuildKit build engine, which is **not supported by docker.io** shipped with Ubuntu installations by default. To make BuildKit available, follow these steps:
-> - Install Docker-ce using scripts/docker-ce_install.sh (also uninstalls any pre-existing Docker distribution beforehand)
+> - Install Docker-ce using `scripts/docker-ce_install.sh` (also uninstalls any pre-existing Docker distribution beforehand)
 > - Create buildx builder with linux/arm64/v8 platform (for more info see https://docs.docker.com/reference/cli/docker/buildx/create/):
 >    - `docker buildx create --name arm_builder --platform linux/arm64/v8 --use`
 >    - `docker buildx inspect --bootstrap`
