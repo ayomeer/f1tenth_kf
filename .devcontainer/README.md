@@ -20,10 +20,7 @@ The images available on Dockerhub are built for both amd64 and arm64 architectur
 For building the images, build scripts are available in the `scripts` subdirectory.
       
 ## Build Caching
-To quickly iterate on the images, it's useful to cache as much of the build as possible, such that parts that haven't changed since the last build can simply be loaded from cache, rather than being rebuilt. Two major techniques were used to improve build caching:
-
-> [!NOTE]
-> Make sure the first line of the Dockerfile reads `# syntax = docker/dockerfile:1.2` to enable BuildKit caching features.
+To quickly iterate on the images, it's useful to cache as much of the build as possible, such that parts that haven't changed since the last build can simply be loaded from cache, rather than being rebuilt. Two techniques were used to improve build caching:
 
 1) [apt-caching](https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/reference.md#run---mounttypecache):
 Added the line `RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache` before starting to install packages through apt and the option `--mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked` to the `RUN` command, where apt is used. This specifies a cache for apt specifically, such that the packages that were installed in previous builds of the image and haven't changed, do not have to be downloaded and installed again on the next build. Specifying `id=${TARGETPLATFORM}` also distinguishes these caches between architectures, since they use differnet versions of the packages.
@@ -32,3 +29,5 @@ Added the line `RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::A
 4) [multi-arch caching](https://github.com/docker/buildx/discussions/1382): 
 Running a multi-architecture build with BuildKit using something like `docker buildx build --platform linux/amd64/,linux/arm64/v8 --push .` builds and pushes both architecture variants one after the other, and only the latest build will stay in the cache for the next build. To work around this, in the build scripts the two variants are built in seperate commands with `--cache-to` and `--cache-from` options being used to explicitly cache them as separate build caches. Finally, the standard multi-platform build command can be used to push both images to the registry, specifying both build caches to `--cache-from`, so that nothing has to be re-built.
 
+> [!NOTE]
+> Make sure the first line of the Dockerfile reads `# syntax = docker/dockerfile:1.2` to enable BuildKit caching features.
