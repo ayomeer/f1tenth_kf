@@ -1,6 +1,7 @@
 # f1tenth_kf
 
-## Jetson Setup
+## Setup
+### Jetson Setup
 - Run through Ubuntu Setup
 - Run through NVidia Jetpack Setup
 - Run setup scripts for ayomeer/ros-devconainer:galactic
@@ -11,9 +12,9 @@ Networking:
   - Static ip: 152.96.175.95
   - Device name: ECEjetson01
   
-## PC Setup
+### PC Setup
 - Run setup scripts for ayomeer/ros-devconainer:galactic
-  
+ 
   
 ## Running packages in dockerized ROS 
 
