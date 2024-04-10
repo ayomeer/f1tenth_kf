@@ -19,7 +19,7 @@ The images available on Dockerhub are built for both amd64 and arm64 architectur
  
 For building the images, build scripts are available in the `scripts` subdirectory.
       
-## Build Caching
+## Build Caching Optimizations
 To quickly iterate on the images, it's useful to cache as much of the build as possible, such that parts that haven't changed since the last build can simply be loaded from cache, rather than being rebuilt. Two techniques were used to improve build caching and dramatically cutting down build times:
 
 1) [apt-caching](https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/reference.md#run---mounttypecache):
