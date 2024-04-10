@@ -2,7 +2,7 @@ version: "2.4"
 services:
   ros-environment: 
     image: ayomeer/ros-devcontainer:galactic-dev
-    user: ros #"1000:1000"
+    user: ros 
     container_name: ros-devcontainer
     network_mode: host  
 
@@ -10,11 +10,11 @@ services:
       - ../config/:/home/ros/config/
       - ../vesc/:/home/ros/ros_ws/src/vesc/      
       - ../transport_drivers/:/home/ros/ros_ws/src/transport_drivers/       
-      - /dev/:/dev/  # pass through devices (xpad, sensors)
+      - /dev/:/dev/  
     #  - /tmp/.X11-unix:/tmp/.X11-unix # display
 
-    # device_cgroup_rules:
-    #   - 'c *:* rmw'
+    device_cgroup_rules:
+      - 'c *:* rmw'
 
     # environment:
     #  - DISPLAY=$DISPLAY
