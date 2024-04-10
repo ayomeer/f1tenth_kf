@@ -2,10 +2,10 @@
 
 This project uses Docker containers for running the development environment as well as for deployment (on Jetson arm64 platforms). They can be build from the Dockerfiles in this directory or pulled from Dockerhub at `ayomeer/ros-devcontainer:galactic-[build target]`. The Devcontainer Dockerfile is structured as a multi-stage build with the following stages available as build targets:
 
-    - `base`:    Minimal container for deployment with ROS2 runtime environment and not much else
-    - `dev`:     Adds common introspection and debuggin tools to aid during development
-    - `full`:    Fully featured ROS development environment meant for the development PC including Gazebo, Rviz, etc.
-    - `nvidia`:  Adds NVidia GPU support to accelerate graphics intensive tools
+- `base`:    Minimal container for deployment with ROS2 runtime environment and not much else
+- `dev`:     Adds common introspection and debuggin tools to aid during development
+- `full`:    Fully featured ROS development environment meant for the development PC including Gazebo, Rviz, etc.
+- `nvidia`:  Adds NVidia GPU support to accelerate graphics intensive tools
 
 The images available on Dockerhub are built for both amd64 and arm64 architectures. Pulling one of them from either a Dev-PC or the Jetson will automatically choose the image for the matching architecture. 
 
