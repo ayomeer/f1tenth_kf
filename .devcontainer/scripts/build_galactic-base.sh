@@ -4,7 +4,7 @@ docker buildx build \
   --platform linux/arm64/v8 \
   --target base \
   --load \
-  .
+  ..
 
 docker buildx build \
   --cache-from=type=registry,ref=ayomeer/ros-devcontainer:buildcache-amd64 \
@@ -12,7 +12,7 @@ docker buildx build \
   --platform linux/amd64 \
   --target base \
   --load \
-  .
+  ..
 
 docker buildx build \
   --cache-from=type=registry,ref=ayomeer/ros-devcontainer:buildcache-arm64 \
@@ -21,4 +21,4 @@ docker buildx build \
   --target base \
   --push \
   -t ayomeer/ros-devcontainer:galactic-base \
-  .
+  ..
