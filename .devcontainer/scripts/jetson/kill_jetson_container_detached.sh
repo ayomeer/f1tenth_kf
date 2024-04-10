@@ -1,1 +1,1 @@
-docker-compose -f docker-compose.jetson.yml down
+docker-compose -f ../../docker-compose.jetson.yml down

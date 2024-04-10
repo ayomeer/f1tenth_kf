@@ -1,1 +1,1 @@
-docker-compose -f docker-compose.jetson.yml up -d
+docker-compose -f ../../docker-compose.jetson.yml up -d
