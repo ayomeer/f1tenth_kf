@@ -114,9 +114,9 @@ RUN \
   --mount=type=cache,id=${TARGETPLATFORM},target=/var/cache/apt,sharing=locked \
   apt-get update && apt-get install -y --no-install-recommends \
   bash-completion \
-  # build-essential \
-  # cmake \
-  # gdb \
+  build-essential \
+  cmake \
+  gdb \
   git \
   git-core \
   openssh-client \
@@ -124,9 +124,9 @@ RUN \
   python3-pip \
   ros-dev-tools \
   ros-${ROS_DISTRO}-ament-* \
-  # ros-${ROS_DISTRO}-xacro \
-  # ros-${ROS_DISTRO}-joint-state-publisher \
-  # ros-${ROS_DISTRO}-joint-state-publisher-gui \
+  ros-${ROS_DISTRO}-xacro \
+  ros-${ROS_DISTRO}-joint-state-publisher \
+  ros-${ROS_DISTRO}-joint-state-publisher-gui \
   ros-${ROS_DISTRO}-demo-nodes-py \
   ros-${ROS_DISTRO}-demo-nodes-cpp \
   # ros-${ROS_DISTRO}-image-transport-plugins \

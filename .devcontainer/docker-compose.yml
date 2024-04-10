@@ -1,6 +1,6 @@
 services:
   ros-environment: 
-    image: ayomeer/ros-devcontainer:galactic
+    image: ayomeer/ros-devcontainer:galactic-dev
     user: ros #"1000:1000"
     container_name: ros-devcontainer
     network_mode: host  
