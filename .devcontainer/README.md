@@ -32,4 +32,4 @@ By default, the lengthy process of installing packages through apt has to be rep
 Running a multi-architecture build with BuildKit using something like `docker buildx build --platform linux/amd64/,linux/arm64/v8 --push .` builds and pushes both architecture variants one after the other, and only the latest build will stay in the cache for the next build. To work around this, in the build scripts the two variants are built in seperate commands with `--cache-to` and `--cache-from` options being used to explicitly cache them as separate build caches. Finally, the standard multi-platform build command can be used to push both images to the registry, specifying both build caches to `--cache-from`, so that nothing has to be re-built.
 
 > [!NOTE]
-> Make sure the first line of the Dockerfile reads `# syntax = docker/dockerfile:1.2` to enable BuildKit caching features.
+> Make sure the first line of the Dockerfile reads `# syntax = docker/dockerfile:1.2` to enable BuildKit caching features and that you are using BuildKit as your build engine when building the image (See note in previous section).
