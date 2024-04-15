@@ -8,8 +8,7 @@ services:
 
     volumes:
       - ../config/:/home/ros/config/
-      - ../vesc/:/home/ros/ros_ws/src/vesc/      
-      - ../transport_drivers/:/home/ros/ros_ws/src/transport_drivers/       
+      - ../src/:/home/ros/ros_ws/src     
       - /dev/:/dev/  # pass through devices (xpad, sensors)
       - /tmp/.X11-unix:/tmp/.X11-unix # display
 
