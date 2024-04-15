@@ -1,4 +1,4 @@
-version: "2.4"
+version: "2.4" # This version supports device_cgroup_rules, 3.0 does not
 services:
   ros-environment: 
     image: ayomeer/ros-devcontainer:galactic-dev
