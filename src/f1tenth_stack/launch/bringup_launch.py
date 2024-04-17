@@ -31,11 +31,11 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 def generate_launch_description():
-    joy_teleop_config = os.path.join(
-        get_package_share_directory('f1tenth_stack'),
-        'config',
-        'joy_teleop.yaml'
-    )
+    # joy_teleop_config = os.path.join(
+    #     get_package_share_directory('f1tenth_stack'),
+    #     'config',
+    #     'joy_teleop.yaml'
+    # )
     vesc_config = os.path.join(
         get_package_share_directory('f1tenth_stack'),
         'config',
@@ -52,10 +52,10 @@ def generate_launch_description():
         'mux.yaml'
     )
 
-    joy_la = DeclareLaunchArgument(
-        'joy_config',
-        default_value=joy_teleop_config,
-        description='Descriptions for joy and joy_teleop configs')
+    # joy_la = DeclareLaunchArgument(
+    #     'joy_config',
+    #     default_value=joy_teleop_config,
+    #     description='Descriptions for joy and joy_teleop configs')
     vesc_la = DeclareLaunchArgument(
         'vesc_config',
         default_value=vesc_config,
@@ -69,20 +69,21 @@ def generate_launch_description():
         default_value=mux_config,
         description='Descriptions for ackermann mux configs')
 
-    ld = LaunchDescription([joy_la, vesc_la, sensors_la, mux_la])
+    # ld = LaunchDescription([joy_la, vesc_la, sensors_la, mux_la])
+    ld = LaunchDescription([vesc_la, sensors_la, mux_la])
 
-    joy_node = Node(
-        package='joy',
-        executable='joy_node',
-        name='joy',
-        parameters=[LaunchConfiguration('joy_config')]
-    )
-    joy_teleop_node = Node(
-        package='joy_teleop',
-        executable='joy_teleop',
-        name='joy_teleop',
-        parameters=[LaunchConfiguration('joy_config')]
-    )
+    # joy_node = Node(
+    #     package='joy',
+    #     executable='joy_node',
+    #     name='joy',
+    #     parameters=[LaunchConfiguration('joy_config')]
+    # )
+    # joy_teleop_node = Node(
+    #     package='joy_teleop',
+    #     executable='joy_teleop',
+    #     name='joy_teleop',
+    #     parameters=[LaunchConfiguration('joy_config')]
+    # )
     ackermann_to_vesc_node = Node(
         package='vesc_ackermann',
         executable='ackermann_to_vesc_node',
@@ -110,12 +111,12 @@ def generate_launch_description():
         name='throttle_interpolator',
         parameters=[LaunchConfiguration('vesc_config')]
     )
-    urg_node = Node(
-        package='urg_node',
-        executable='urg_node_driver',
-        name='urg_node',
-        parameters=[LaunchConfiguration('sensors_config')]
-    )
+    # urg_node = Node(
+    #     package='urg_node',
+    #     executable='urg_node_driver',
+    #     name='urg_node',
+    #     parameters=[LaunchConfiguration('sensors_config')]
+    # )
     ackermann_mux_node = Node(
         package='ackermann_mux',
         executable='ackermann_mux',
@@ -131,13 +132,13 @@ def generate_launch_description():
     )
 
     # finalize
-    ld.add_action(joy_node)
-    ld.add_action(joy_teleop_node)
+    # ld.add_action(joy_node)
+    # ld.add_action(joy_teleop_node)
     ld.add_action(ackermann_to_vesc_node)
     ld.add_action(vesc_to_odom_node)
     ld.add_action(vesc_driver_node)
     # ld.add_action(throttle_interpolator_node)
-    ld.add_action(urg_node)
+    # ld.add_action(urg_node)
     ld.add_action(ackermann_mux_node)
     ld.add_action(static_tf_node)
 
