@@ -12,6 +12,7 @@
     </General>
     <Discovery>
       <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
       <Peers>
         <Peer Address="${DEVPC_IP}"/>
       </Peers>
