@@ -103,10 +103,6 @@ RUN chown $USER_UID:$USER_GID /home/$USERNAME
 # Use default bashrc for user
 RUN cp /etc/skel/.bashrc /home/$USERNAME
 
-# Create ros_ws with ros user to avoid permission issues
-USER ros
-RUN mkdir -p ~/ros_ws/src
-USER root
 
 # Apt installs, first three lines cache apt installs for future builds
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
@@ -169,8 +165,13 @@ else \
   echo "Building for unexpected platform!"; \
 fi 
 
+# Avoid permission issues by creating dirs as ros user
+USER ros
+RUN mkdir -p ~/ros_ws/src
+
 # fix jstest first time launch error
 RUN mkdir -p /home/$USERNAME/.config
+USER root
 
 ENV DEBIAN_FRONTEND=
 ENV AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1
