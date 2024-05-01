@@ -121,7 +121,7 @@ VescDriver::VescDriver(const rclcpp::NodeOptions & options)
 */
 
 void VescDriver::timerCallback()
-{
+{  
   // VESC interface should not unexpectedly disconnect, but test for it anyway
   if (!vesc_.isConnected()) {
     RCLCPP_FATAL(get_logger(), "Unexpectedly disconnected from serial port.");
@@ -135,6 +135,8 @@ void VescDriver::timerCallback()
    *  OPERATING - receiving commands from subscriber topics
    */
   if (driver_mode_ == MODE_INITIALIZING) {
+    RCLCPP_INFO_ONCE(get_logger(), "driver_mode == MODE_INITIALIZING");
+    
     // request version number, return packet will update the internal version numbers
     vesc_.requestFWVersion();
     if (fw_version_major_ >= 0 && fw_version_minor_ >= 0) {
@@ -144,6 +146,7 @@ void VescDriver::timerCallback()
       driver_mode_ = MODE_OPERATING;
     }
   } else if (driver_mode_ == MODE_OPERATING) {
+    RCLCPP_INFO_ONCE(get_logger(), "driver_mode == MODE_OPERATING");
     // poll for vesc state (telemetry)
     vesc_.requestState();
     // poll for vesc imu
