@@ -6,7 +6,7 @@
 <CycloneDDS>
   <Domain id="any">
     <General>
-      <NetworkInterfaceAddress>eno1</NetworkInterfaceAddress>
+      <NetworkInterfaceAddress>wlp2s0</NetworkInterfaceAddress>
       <AllowMulticast>false</AllowMulticast>
       <EnableMulticastLoopback>true</EnableMulticastLoopback>
     </General>
@@ -14,7 +14,7 @@
       <ParticipantIndex>auto</ParticipantIndex>
       <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
       <Peers>
-        <Peer Address="${ROBOT_IP}"/>
+        <Peer Address="${ROBOT_IP_HOTSPOT}"/>
         <Peer Address="localhost"/>
       </Peers>
     </Discovery>
