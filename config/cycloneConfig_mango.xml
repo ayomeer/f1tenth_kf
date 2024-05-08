@@ -1,0 +1,23 @@
+
+
+<!--PC config (net=host)-->
+<!-- Ref: https://iroboteducation.github.io/create3_docs/setup/xml-config/#cyclone-dds-->
+<?xml version="1.0"?>
+<CycloneDDS>
+  <Domain id="any">
+    <General>
+      <NetworkInterfaceAddress>wlp2s0</NetworkInterfaceAddress>
+      <AllowMulticast>false</AllowMulticast>
+      <EnableMulticastLoopback>true</EnableMulticastLoopback>
+    </General>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+      <Peers>
+        <Peer Address="10.10.10.69"/>
+        <Peer Address="localhost"/>
+      </Peers>
+    </Discovery>
+  </Domain>
+</CycloneDDS>
+
