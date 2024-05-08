@@ -13,7 +13,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix # display
 
     device_cgroup_rules:
-      - 'c *:* rmw' # for gamepad 
+      - 'c *:* rmw' # give read/write permissions to serial devices
       
     environment:
      - DISPLAY=$DISPLAY
