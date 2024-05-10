@@ -14,10 +14,7 @@
       <ParticipantIndex>auto</ParticipantIndex>
       <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex> 
        <Peers>
-        <Peer Address="10.10.10.10"/>
-        <Peer Address="192.168.1.200"/>
         <Peer Address="${DEVPC_IP}"/>
-        <Peer Address="${DEVPC_HOTSPOT_IP}"/>
         <Peer Address="localhost"/>
       </Peers>
     </Discovery>
