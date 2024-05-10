@@ -1,0 +1,4 @@
+Changes since build of container:
+
+- rosdep update & driver stack build
+- scp script for getting rosbags off robot in ros_ws/log/bagfiles

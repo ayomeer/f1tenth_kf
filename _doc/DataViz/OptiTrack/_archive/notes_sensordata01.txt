@@ -1,0 +1,5 @@
+in editor: xz-plane w/ y pointing up
+
+driving in -x dir at start
+
+
