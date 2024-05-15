@@ -1,0 +1,5 @@
+
+/sensors/imu/raw
+  - msg.angular_velocity.z in deg!
+  
+ 

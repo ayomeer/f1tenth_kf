@@ -1,4 +1,14 @@
 Frequency sensors (imu, odom): 
 50Hz -> 20ms
 
+sensordata_03:
+- turn circle default <1.78m
+- wheelbase: 0.25m (wrong)
 
+sensordata_04:
+- turn circle calibrated to 1.78m
+- wheelbase: 0.25m (wrong)
+- changed tracker origin to smallest stem
+
+sensordata_05:
+- wheelbase: 0.315m (wrong, but calibrated to match 1.78m in odom)
