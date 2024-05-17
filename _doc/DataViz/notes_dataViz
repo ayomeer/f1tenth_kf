@@ -1,0 +1,20 @@
+
+----------------------------------------------------------------
+ DataSet versions
+----------------------------------------------------------------
+
+Position
+  pos_gt:         raw csv import -> starting point subtracted
+  pos_gt_aligned: aligned to odom base frame
+  pos_gt_synched: subset of samples with matching imu datapoints
+ 
+  pos_odom:        raw rosbag import 
+  pos_odom_subset: subset for orientation plotting (no synch)
+  
+Orientation
+  orient_gt:        raw csv import -> starting point orientation reset
+  orient_odom:      raw rosbag import
+  
+  theta_imu_dot:    raw imu angular_velocity.z data
+  theta_imu_:       cumsum from theta_imu_dot
+  
