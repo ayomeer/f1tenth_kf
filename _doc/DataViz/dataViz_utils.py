@@ -84,8 +84,8 @@ def readOptiTrackCSV(optitrack_csv_path):
             orient.append((row[2], row[3], row[4], row[5]))
             pos.append((row[6], row[7], row[8]))
             
-    orient = np.array(orient).astype('float')
-    pos = np.array(pos).astype('float')
+    orient = np.array(orient)[1:].astype('float') # discard 1st row: base frame
+    pos = np.array(pos)[1:].astype('float')
     return pos, orient
 
 
@@ -103,9 +103,8 @@ def getTimeSynchIndices(pos_gt, lin_accel_imu, gt_threshold=0.0002, imu_threshol
     
     # Find index for first position change in pos_gt
     pos_gt_dot = pos_gt[1:]-pos_gt[0:-1]
-    v_length_gt = np.linalg.norm(pos_gt_dot, axis=1)[1:]
-
-    idx_start_gt = np.argmax(v_length_gt>gt_threshold) -1
+    v_length_gt = np.linalg.norm(pos_gt_dot, axis=1)
+    idx_start_gt = np.argmax(v_length_gt > gt_threshold) 
 
     if plot == True:
         # show chosen start index for pos_gt
@@ -118,9 +117,8 @@ def getTimeSynchIndices(pos_gt, lin_accel_imu, gt_threshold=0.0002, imu_threshol
 
     # Find index for first linear_velocity change over threashold
     v_length_imu = np.linalg.norm(lin_accel_imu, axis=1)
-    v_length_imu = v_length_imu-v_length_imu[0]
-
-    idx_start_imu = np.argmax(v_length_imu>imu_threshold)
+    v_length_imu = v_length_imu-np.mean(v_length_imu[0:10])
+    idx_start_imu = np.argmax(v_length_imu > imu_threshold)
 
     if plot == True:
         # show chosen start index for theta_imu

@@ -20,6 +20,9 @@ PLOT_IMU_ORIENTATIONS = 1
 
 PLOT_STARTPOINT_DETECTION = 0
 
+# Data adjustment params
+ADV_IMU_ORIENT_NUDGE = 5
+SYNCHED_SUBSAMPLE = 2
 
 # --- Read Data -----------------------------------------------------------------------------
 # Read Pose from RosBag
@@ -46,12 +49,11 @@ pos_odom = quaternionRotPoints(pos_odom, q0)
 
 # OptiTrack
 # set beginning position to origin (like odom)
-gt_startFrame = 1 # frame 0 is base frame!
-pos_gt -= pos_gt[gt_startFrame]
+pos_gt -= pos_gt[0]
 
 
 # Align  gt with odom starting orientation (odom is reference for car)
-q0 = orient_gt[gt_startFrame]
+q0 = orient_gt[0]
 q0[-1] = -q0[-1] # rotate the other way (back)
 pos_gt_aligned = quaternionRotPoints(pos_gt, q0)
 
@@ -93,9 +95,10 @@ theta_imu_ = np.cumsum(theta_imu_dot_unbiased*dt)
 idx_start_gt, idx_start_imu = getTimeSynchIndices(pos_gt_aligned, lin_accel_imu, plot=PLOT_STARTPOINT_DETECTION)
 
 # get synchronized subsamples of 50Hz and 120Hz measurements
+ADV_IMU_ORIENT_NUDGE = 5 # adjust timing offset between imu and gt offset after automatic synch
 pos_gt_synched, theta_imu_synched = synchronizeRates(pos_gt_aligned[idx_start_gt: ], 
-                                                     theta_imu_[idx_start_imu: ],
-                                                     N_subsample=2)
+                                                     theta_imu_[idx_start_imu+ADV_IMU_ORIENT_NUDGE: ],
+                                                     N_subsample=SYNCHED_SUBSAMPLE)
 
 
 
@@ -120,8 +123,8 @@ if PLOT_POS_ODOM == 1:
 
 # plot ground truth from OptiTrack system
 if PLOT_POS_GT_RAW:
-    ax.scatter( pos_gt[gt_startFrame:, 0], 
-                pos_gt[gt_startFrame:, 1],
+    ax.scatter( pos_gt[:, 0], 
+                pos_gt[:, 1],
                 alpha=0.15, 
                 s=0.1, c='black',
                 label='pos gt raw')
@@ -132,13 +135,6 @@ if PLOT_POS_GT_ADJ == 1:
                 s=0.1, c='orange',
                 label='pos gt adjusted')
     
-    # highlight synchronization samples
-    ax.scatter( pos_gt_synched[:, 0], 
-                pos_gt_synched[:, 1], 
-                s=10, c='black',
-                label='Synch Samples',
-                zorder=10)
-    
     # highlight time synch sample in pos data
     ax.scatter( pos_gt_aligned[idx_start_gt, 0], 
                 pos_gt_aligned[idx_start_gt, 1], 
@@ -146,7 +142,13 @@ if PLOT_POS_GT_ADJ == 1:
                 label='Time Synch Sample',
                 zorder=20)
     
-
+    # highlight synchronization samples
+    ax.scatter( pos_gt_synched[:, 0], 
+                pos_gt_synched[:, 1], 
+                s=10, c='black',
+                label='Synch Samples',
+                zorder=10)
+    
 
 ## --- Orientations ---
 # Odom orientations
@@ -160,7 +162,7 @@ if PLOT_ODOM_ORIENTATIONS == 1:
 if PLOT_IMU_ORIENTATIONS == 1:  
     theta_imu_dir = angles2vects(theta_imu_synched)        
     ax.quiver(  pos_gt_synched[:, 0], pos_gt_synched[:, 1], 
-                theta_imu_dir[1:, 0], theta_imu_dir[1:, 1],
+                theta_imu_dir[:, 0], theta_imu_dir[:, 1],
                 color='blue', 
                 label='IMU orientation')
 
