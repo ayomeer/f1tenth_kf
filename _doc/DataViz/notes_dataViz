@@ -4,12 +4,12 @@
 ----------------------------------------------------------------
 
 Position
-  pos_gt:         raw csv import -> starting point subtracted
-  pos_gt_aligned: aligned to odom base frame
-  pos_gt_synched: subset of samples with matching imu datapoints
+  pos_gt:           raw csv import -> starting point subtracted
+  pos_gt_aligned:   aligned to odom base frame
+  pos_gt_synched:   subset of samples with matching imu datapoints
  
-  pos_odom:        raw rosbag import 
-  pos_odom_subset: subset for orientation plotting (no synch)
+  pos_odom:         raw rosbag import 
+  pos_odom_subset:  subset for orientation plotting (no synch)
   
 Orientation
   orient_gt:        raw csv import -> starting point orientation reset
@@ -18,3 +18,21 @@ Orientation
   theta_imu_dot:    raw imu angular_velocity.z data
   theta_imu_:       cumsum from theta_imu_dot
   
+  
+RosBags:
+ - Frequency sensors (imu, odom):     50Hz -> 20ms
+ - Frequency commands (speed, servo): ~27Hz (variable!)
+ 
+high rate (vescStateCallback):
+  /sensors/core
+  /sensors/imu/raw
+  /ego_racecar/odom
+ 
+low rate (servoCmdCallback):
+  /commands/motor/speed
+  /commands/servo/position
+  /sensors/servo_position_command
+  
+  => servo always slow
+  => speed available slow & fast
+

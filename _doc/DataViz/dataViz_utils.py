@@ -2,12 +2,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from rosbags.rosbag2 import Reader
-from rosbags.typesys import Stores, get_typestore
+from rosbags.typesys import Stores, get_typestore, get_types_from_msg, register_types
+
 
 import csv
 
 
 # --- Data reader utils -----------------------------------------------------
+
+def readFloatData(rosbag_path, topic_string):
+    reader = Reader(rosbag_path) 
+    # Create a typestore and get the string class.
+    typestore = get_typestore(Stores.LATEST)
+
+    with reader:
+        t = []
+        data = []
+
+        # Iterate over messages.
+        for connection, timestamp, rawdata in reader.messages():
+            if connection.topic == topic_string:
+                msg = typestore.deserialize_cdr(rawdata, connection.msgtype)
+            
+                t.append(timestamp)
+                data.append(msg.data)
+
+    return np.array(t), np.array(data)
 
 def readOdomData(rosbag_path):
 
@@ -18,6 +38,7 @@ def readOdomData(rosbag_path):
     with reader:
         pos = []
         orient = []
+        z_twist = []
 
         # Iterate over messages.
         for connection, timestamp, rawdata in reader.messages():
@@ -32,8 +53,10 @@ def readOdomData(rosbag_path):
                                msg.pose.pose.orientation.y,
                                msg.pose.pose.orientation.z,
                                msg.pose.pose.orientation.w))
+                
+                z_twist.append(msg.twist.twist.angular.z)
 
-    return np.array(pos), np.array(orient)
+    return np.array(pos), np.array(orient), np.array(z_twist)
 
 def readImuData(rosbag_path, raw=True):
 
@@ -48,8 +71,6 @@ def readImuData(rosbag_path, raw=True):
 
         if raw == True:
             topic_name = '/sensors/imu/raw'
-        else:
-            topic_name = '/sensors/imu' # Not present in recorded rosbags!
 
         # Iterate over messages.
         for connection, timestamp, rawdata in reader.messages():
@@ -153,6 +174,35 @@ def synchronizeRates(pos_gt, theta_imu, N_subsample):
     return pos_gt_synched[0:clip_idx], theta_imu_synched[0:clip_idx]
 
 
+def upsample(x_lowRate, len_highRate):
+    x_highRate = np.zeros(shape=len_highRate)
+
+    for i in range(len_highRate):
+        i_ = (i*len(x_lowRate)//len_highRate)
+        x_highRate[i] = x_lowRate[i_]
+
+    return x_highRate
+
+def upsampleVariableRate(t_variable_ms, x_variable, len_highRate, dt_highRate_ms=20):
+    len_varRate = len(x_variable)
+
+    x_variable_highRate = np.zeros(len_highRate)
+    i_var = 0
+    i_var_list = []
+    for i in np.arange(len_highRate):
+        t_ms = i*dt_highRate_ms
+        
+        while(t_variable_ms[i_var+1] < t_ms):
+            i_var += 1
+
+            # stop if end of t_variable_ms array reached
+            if i_var >= (len_varRate-1): 
+                break 
+
+        x_variable_highRate[i] = x_variable[i_var]
+        i_var_list.append(i_var_list)
+
+    return x_variable_highRate
 
 # --- Stats ---------------------------------------------------------------------
 def getLocalStats(signal, windowSize):
@@ -236,3 +286,20 @@ def angles2vects(theta):
 def deg2rad(deg):
     return deg * (2*np.pi)/(360)
 
+
+def getOrientXYUV(pos_odom, orient_odom, N_subsample):
+    orient_dir_0 = np.array([1,0,0]) # base orientation vector to transform onto paths
+    
+    # get subsampled versions of odom orientations & positions for plotting
+    N_subsample = 25
+    orient_odom_subset = orient_odom[::N_subsample] 
+    pos_odom_subset = pos_odom[::N_subsample]
+
+    # apply orient_odom quaternion rotations to orient0
+    orient_odom_dir = []
+    for i in range(orient_odom_subset.shape[0]):
+        orient_odom_dir.append(quaternionRotPoint(orient_dir_0, orient_odom_subset[i]))
+
+    orient_odom_dir = np.array(orient_odom_dir)
+
+    return pos_odom_subset, orient_odom_dir

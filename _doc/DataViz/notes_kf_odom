@@ -1,0 +1,9 @@
+Differences py implementation vs ROS module:
+
+  Visually:
+   - softer, even without upsampling
+   - 
+
+
+
+- Higher sampling rate on speed signal
