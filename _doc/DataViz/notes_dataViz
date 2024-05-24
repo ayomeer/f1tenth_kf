@@ -4,19 +4,21 @@
 ----------------------------------------------------------------
 
 Position
-  pos_gt:           raw csv import -> starting point subtracted
-  pos_gt_aligned:   aligned to odom base frame
-  pos_gt_synched:   subset of samples with matching imu datapoints
+  pos_gt:            120Hz, raw csv import -> starting point subtracted
+  pos_gt_aligned:    120Hz, aligned to odom base frame
+  pos_gt_synched:    10Hz,  subset of samples with matching imu datapoints
  
-  pos_odom:         raw rosbag import 
-  pos_odom_subset:  subset for orientation plotting (no synch)
+  pos_odom:          50Hz, raw rosbag import 
+  pos_odom_subset:   subset for orientation plotting (no synch)
   
 Orientation
-  orient_gt:        raw csv import -> starting point orientation reset
-  orient_odom:      raw rosbag import
+  orient_gt:         120Hz, raw csv import -> starting point orientation reset
+  orient_odom:       50Hz,  raw rosbag import
   
-  theta_imu_dot:    raw imu angular_velocity.z data
-  theta_imu_:       cumsum from theta_imu_dot
+  theta_imu_dot:     50Hz,  raw imu angular_velocity.z data
+  theta_imu_:        50Hz,  cumsum from theta_imu_dot
+  theta_imu_synched: 10Hz
+  
   
   
 RosBags:

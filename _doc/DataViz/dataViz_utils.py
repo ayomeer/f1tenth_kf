@@ -1,19 +1,61 @@
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from rosbags.rosbag2 import Reader
 from rosbags.typesys import Stores, get_typestore, get_types_from_msg, register_types
 
-
 import csv
 
 
+# From https://gitlab.com/ternaris/rosbags/-/blob/master/docs/examples/register_types_files.py
+def guess_msgtype(path: Path) -> str:
+    """Guess message type name from path."""
+    name = path.relative_to(path.parents[2]).with_suffix('')
+    if 'msg' not in name.parts:
+        name = name.parent / 'msg' / name.name
+    return str(name)
+
+
+# Create a typestore and get the string class.
+typestore = get_typestore(Stores.LATEST)
+add_types = {}
+
+# Add custom Vesc message types to be able to read them from rosbags
+msgDirPath = 'ROS/vesc_msgs/msg/'
+msgDefs = ['VescState.msg', 
+           'VescStateStamped.msg',
+           'VescImu.msg',
+           'VescImuStamped.msg']
+msgDefPaths = [msgDirPath+msgFileName for msgFileName in msgDefs]
+
+for pathstr in msgDefPaths:
+    msgpath = Path(pathstr)
+    msgdef = msgpath.read_text(encoding='utf-8')
+    add_types.update(get_types_from_msg(msgdef, guess_msgtype(msgpath)))
+
+typestore.register(add_types)   
+
 # --- Data reader utils -----------------------------------------------------
+
+def readSensorsCore(rosbag_path):
+    reader = Reader(rosbag_path) 
+    
+    with reader:
+        data = []
+
+        # Iterate over messages.
+        for connection, timestamp, rawdata in reader.messages():
+            if connection.topic == '/sensors/core':
+                msg = typestore.deserialize_cdr(rawdata, connection.msgtype)
+            
+                data.append(msg.state.speed)
+
+    return np.array(data)
 
 def readFloatData(rosbag_path, topic_string):
     reader = Reader(rosbag_path) 
-    # Create a typestore and get the string class.
-    typestore = get_typestore(Stores.LATEST)
 
     with reader:
         t = []
@@ -61,8 +103,6 @@ def readOdomData(rosbag_path):
 def readImuData(rosbag_path, raw=True):
 
     reader = Reader(rosbag_path) 
-    # Create a typestore and get the string class.
-    typestore = get_typestore(Stores.LATEST)
 
     with reader:
         theta_dot = []
@@ -193,11 +233,13 @@ def upsampleVariableRate(t_variable_ms, x_variable, len_highRate, dt_highRate_ms
         t_ms = i*dt_highRate_ms
         
         while(t_variable_ms[i_var+1] < t_ms):
-            i_var += 1
+            
 
             # stop if end of t_variable_ms array reached
-            if i_var >= (len_varRate-1): 
+            if i_var+1 >= (len_varRate-1): 
                 break 
+            else: 
+                i_var += 1
 
         x_variable_highRate[i] = x_variable[i_var]
         i_var_list.append(i_var_list)
@@ -267,6 +309,13 @@ def quaternionRotPoints(posArray, q):
         
 def quat2yaw(q):
     w = q[-1]
+    z = q[2]
+    
+    # normalize
+    mag = np.sqrt(w**2+z**2)
+    w /= mag
+    z /= mag
+
     return 2*np.arccos(w)
 
 def getQuatAxis(q):
@@ -303,3 +352,4 @@ def getOrientXYUV(pos_odom, orient_odom, N_subsample):
     orient_odom_dir = np.array(orient_odom_dir)
 
     return pos_odom_subset, orient_odom_dir
+

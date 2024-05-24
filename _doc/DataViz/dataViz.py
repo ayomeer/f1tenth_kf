@@ -6,8 +6,8 @@ from kf_odom import Odom
 
 # --- Config -----------------------------------------------------------------------------
 # Measurement data paths
-rosbag_path = 'ROS/sensordata_05_path'
-optitrack_csv_path = 'OptiTrack/gt_OptiTrack_05_path.csv'
+rosbag_path = 'ROS/sensordata_06_path' 
+optitrack_csv_path = 'OptiTrack/gt_OptiTrack_06_path.csv'
 
 # Toggle plots
 PLOT_POS_GT_RAW = 0
@@ -15,16 +15,30 @@ PLOT_POS_GT_ADJ = 1
 PLOT_POS_ODOM   = 1
 PLOT_POS_PYODOM = 1
 
+# Orientation quiver plots
 PLOT_ODOM_ORIENTATIONS   = 0
-PLOT_PYODOM_ORIENTATIONS = 1
+PLOT_PYODOM_ORIENTATIONS = 0
 PLOT_IMU_ORIENTATIONS    = 0
 
+# Debug plots
 PLOT_STARTPOINT_DETECTION = 0
+
+# Show index next to scatter dots
+ANNOTATE_POS_IDX = 0
+SCATTER_SCALE = 1 + ANNOTATE_POS_IDX
+
+PLOT_SYNCH_DOTS = 0
+SYNCH_DOTS_SCALE = 10
 
 # Data adjustment params
 ADV_IMU_ORIENT_NUDGE = 5
-SYNCHED_SUBSAMPLE    = 2
+SYNCHED_SUBSAMPLE    = 5
 
+ADV_IMU_ORIENT_NUDGE = 5 # adjust timing offset between imu and gt offset
+
+
+synchMult = 5
+N_subsample = synchMult * 5
 
 # Time constants
 dt = 0.02
@@ -35,41 +49,42 @@ NANO_TO_MILLI = 1/1000000
 pos_odom, orient_odom, theta_odom_dot = readOdomData(rosbag_path)
 theta_odom = np.cumsum(theta_odom_dot*dt)
 
-# Read IMU Data from RosBag
+# Read IMU Data from RosBag ('/sensors/imu/raw')
 theta_imu_dot, lin_accel_imu = readImuData(rosbag_path) # message in deg/s even though doc says rad/s
 theta_imu_dot = deg2rad(theta_imu_dot) 
 # NOTE: lin_accel_imu in IMU reference frame
 
-# Read Servo & Motor commands from RosBag
-t_servo, command_servo = readFloatData(rosbag_path, '/commands/servo/position')
-t_rpm, command_rpm = readFloatData(rosbag_path, '/commands/motor/speed')
+# clip for countering delay
+theta_imu_dot = theta_imu_dot[ADV_IMU_ORIENT_NUDGE:]
 
-t_servo_ms = (t_servo-t_servo[0]) * NANO_TO_MILLI 
-t_rpm_ms = (t_rpm-t_rpm[0]) * NANO_TO_MILLI
-
-dt_servo = t_servo - np.insert(t_servo[:-1], 0, t_servo[0])
-dt_rpm = t_rpm - np.insert(t_rpm[:-1], 0, t_rpm[0])
+# Read motor speed measurement
+rpm_sens = readSensorsCore(rosbag_path)
+t_servo_sens, servo_sens = readFloatData(rosbag_path, '/sensors/servo_position_command')
+t_servo_ms = (t_servo_sens-t_servo_sens[0]) * NANO_TO_MILLI 
 
 
-len_highRate = len(theta_imu_dot)
 
-command_servo_upsampled = upsampleVariableRate(t_servo_ms, 
-                                               command_servo,
-                                               len_highRate)
+# clip high rate signals to minLength (in case rosbag recording halted inbetween topics):
+highRateData = [pos_odom, orient_odom, theta_odom_dot, # from /ego_racecar/odom (50Hz)
+                theta_imu_dot, lin_accel_imu,          # from /sensors/imu/raw  (50Hz)
+                rpm_sens]                              # from                   (50Hz)
 
-command_rpm_upsampled = upsampleVariableRate(t_rpm_ms, 
-                                             command_rpm,
-                                             len_highRate)
+minLength = min(len(arr) for arr in highRateData)
+
+pos_odom = pos_odom[:minLength]
+orient_odom = orient_odom[:minLength]
+theta_odom_dot = theta_odom_dot[:minLength]
+
+theta_imu_dot = theta_imu_dot[:minLength]
+lin_accel_imu = lin_accel_imu[:minLength]
+rpm_sens = rpm_sens[:minLength]
 
 
 # Read OptiTrack ground truth from CSV
 pos_gt, orient_gt = readOptiTrackCSV(optitrack_csv_path)
 
 
-# --- Generating Data for own Odometry -------------------------------------------------
-pyOdom = Odom()
-pos_pyOdom, theta_pyOdom = pyOdom.run(command_servo_upsampled, 
-                                      command_rpm_upsampled)
+
 
 # --- Data Manipulation ----------------------------------------------------------------
 # --- Postion Data ---
@@ -97,47 +112,41 @@ print("Rotation axis unit vector: \t", getQuatAxis(q0))
 print("q0 rotation in deg: \t\t", round(quat2yaw(q0)*(360)/(2*np.pi),5))
 
 # --- Orientation Data ---
-
-
-# Odom
-# get subsampled versions of odom orientations & positions for plotting
-N_subsample = 25
-pos_odom_subset = pos_odom[::N_subsample]
-orient_odom_subset = orient_odom[::N_subsample] 
-
-pos_pyOdom_subset = pos_pyOdom[::N_subsample]
-theta_pyOdom_subset = theta_pyOdom[::N_subsample] 
-
-
-# get unit dir vectors 
-orient_dir_0 = np.array([1,0,0]) # base orientation vector to transform onto paths
-orient_odom_dir = []
-for i in range(orient_odom_subset.shape[0]):
-    orient_odom_dir.append(quaternionRotPoint(orient_dir_0, orient_odom_subset[i]))
-
-orient_odom_dir = np.array(orient_odom_dir)
-
-orient_pyOdom_dir = angles2vects(theta_pyOdom_subset)
-
-
 # IMU
 # Subtract bias 
 theta_imu_dot_unbiased = removeBias(theta_imu_dot)
 
 # Convert angular velocity into angle by integrating
-theta_imu_ = np.cumsum(theta_imu_dot_unbiased*dt)
+theta_imu = np.cumsum(theta_imu_dot_unbiased*dt)
 
 
-# --- Synchronize Measurements ---
+# --- Synchronize IMU & Ground Truth Data ---
 # synchronize measurement start
+
 idx_start_gt, idx_start_imu = getTimeSynchIndices(pos_gt_aligned, lin_accel_imu, plot=PLOT_STARTPOINT_DETECTION)
 
+theta_imu = theta_imu[idx_start_imu+ADV_IMU_ORIENT_NUDGE: ]
+pos_gt_aligned = pos_gt_aligned[idx_start_gt: ]
+
 # get synchronized subsamples of 50Hz and 120Hz measurements
-ADV_IMU_ORIENT_NUDGE = 5 # adjust timing offset between imu and gt offset after automatic synch
-pos_gt_synched, theta_imu_synched = synchronizeRates(pos_gt_aligned[idx_start_gt: ], 
-                                                     theta_imu_[idx_start_imu+ADV_IMU_ORIENT_NUDGE: ],
+pos_gt_synched, theta_imu_synched = synchronizeRates(pos_gt_aligned, 
+                                                     theta_imu,
                                                      N_subsample=SYNCHED_SUBSAMPLE)
 
+
+# --- Generating Data for own Odometry -------------------------------------------------
+# Align command data w/ variable update rate to fixed rate imu data
+len_fixedRate = len(theta_imu_dot) # May need to adjust by adding '-1' 
+servo_upsampled = upsampleVariableRate(t_servo_ms, 
+                                       servo_sens,
+                                       len_fixedRate)
+
+pyOdom = Odom()
+state = pyOdom.run(servo_upsampled, 
+                   rpm_sens,
+                   theta_imu_dot_unbiased)
+
+pos_pyOdom, theta_pyOdom = state[0], state[1]
 
 
 # --- Print some stats -----------------------------------------------------------------
@@ -153,26 +162,19 @@ fig = plt.figure()
 ax = fig.add_subplot()
 
 ## --- Positions ---
-# plot ROS system pose
-if PLOT_POS_ODOM == 1:
-    ax.scatter( pos_odom[:, 0], 
-                pos_odom[:, 1], 
-                s=0.1, c='blue',
-                label='Odom') 
-
 # plot ground truth from OptiTrack system
 if PLOT_POS_GT_RAW:
     ax.scatter( pos_gt[:, 0], 
                 pos_gt[:, 1],
                 alpha=0.15, 
-                s=0.1, c='black',
+                s=SCATTER_SCALE, c='black',
                 label='pos gt raw')
 
 if PLOT_POS_GT_ADJ == 1:
     ax.scatter( pos_gt_aligned[:, 0], 
                 pos_gt_aligned[:, 1], 
-                s=0.1, c='orange',
-                label='pos gt adjusted')
+                s=SCATTER_SCALE, c='orange',
+                label='pos gt OptiTrack')
     
     # highlight time synch sample in pos data
     ax.scatter( pos_gt_aligned[idx_start_gt, 0], 
@@ -181,21 +183,71 @@ if PLOT_POS_GT_ADJ == 1:
                 label='Time Synch Sample',
                 zorder=20)
     
-    # highlight synchronization samples
-    ax.scatter( pos_gt_synched[:, 0], 
-                pos_gt_synched[:, 1], 
-                s=10, c='black',
-                label='Synch Samples',
-                zorder=10)
+    if PLOT_SYNCH_DOTS == 1:
+        #highlight synchronization samples
+        ax.scatter( pos_gt_aligned[::12, 0], 
+                    pos_gt_aligned[::12, 1], 
+                    s=SYNCH_DOTS_SCALE, c='orange',
+                    label='Synch Samples',
+                    zorder=10)
+
+# plot ROS system pos
+if PLOT_POS_ODOM == 1:
+    ax.scatter( pos_odom[:, 0], 
+                pos_odom[:, 1], 
+                s=SCATTER_SCALE, c='blue',
+                label='pos Odom') 
     
+    if PLOT_SYNCH_DOTS == 1:
+        ax.scatter( pos_odom[::5, 0], 
+                    pos_odom[::5, 1], 
+                    s=SYNCH_DOTS_SCALE, c='blue',
+                    label='Synch Samples',
+                    zorder=10)
+
+    if ANNOTATE_POS_IDX == 1:
+        for i in range(pos_odom.shape[0]):
+            ax.annotate(i, (pos_odom[i,0], pos_odom[i,1]))
+
+# plot pyOdom pos
 if PLOT_POS_PYODOM == True:
     ax.scatter( pos_pyOdom[:, 0], 
                 pos_pyOdom[:, 1],
                 alpha=1, 
-                s=0.1, c='red',
+                s=SCATTER_SCALE, c='red',
                 label='pos pyOdom')
+    
+    if PLOT_SYNCH_DOTS == 1:
+        #highlight synchronization samples
+        ax.scatter( pos_pyOdom[::5, 0], 
+                    pos_pyOdom[::5, 1], 
+                    s=SYNCH_DOTS_SCALE, c='red',
+                    label='Synch Samples',
+                    zorder=10)
+    
+    if ANNOTATE_POS_IDX == 1:
+        for i in range(pos_pyOdom.shape[0]):
+            ax.annotate(i, (pos_pyOdom[i,0], pos_pyOdom[i,1]))
+
 
 ## --- Orientations ---
+# get subsampled versions of odom orientations & positions for plotting
+pos_odom_subset = pos_odom[::N_subsample]
+orient_odom_subset = orient_odom[::N_subsample] 
+
+pos_pyOdom_subset = pos_pyOdom[::N_subsample]
+theta_pyOdom_subset = theta_pyOdom[::N_subsample] 
+
+# get unit dir vectors for quiver plot
+orient_dir_0 = np.array([1,0,0]) # base orientation vector to transform onto paths
+orient_odom_dir = []
+for i in range(orient_odom_subset.shape[0]):
+    orient_odom_dir.append(quaternionRotPoint(orient_dir_0, orient_odom_subset[i]))
+
+orient_odom_dir = np.array(orient_odom_dir)
+
+orient_pyOdom_dir = angles2vects(theta_pyOdom_subset)
+
 # Odom orientations
 if PLOT_ODOM_ORIENTATIONS == 1:
     ax.quiver(  pos_odom_subset[:,0], pos_odom_subset[:,1], 
@@ -219,12 +271,8 @@ if PLOT_IMU_ORIENTATIONS == 1:
                 color='black', 
                 label='IMU orientation')
 
-
-
 ax.legend()
 ax.grid(True)
 ax.axis('equal')
-plt.show(block = True)
-
+plt.show(block = False)
 dummy = 1
-

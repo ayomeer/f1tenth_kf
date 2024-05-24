@@ -15,7 +15,6 @@ class Odom:
 
         self.wheelbase = 0.315
 
-
     def getSpeed(self, rpm): 
         # NOTE: In vesc_to_odom.cpp, rpm is called 'state.speed' and speed is called 'current_speed'
         return (rpm - self.speed_to_erpm_offset) / self.speed_to_erpm_gain
@@ -28,26 +27,33 @@ class Odom:
     def getAngularVelocity(self, speed, steeringAngle):
         return speed * np.tan(steeringAngle) / self.wheelbase
 
-    def getPos(speed, servo):
-        # TODO: implement getPos()
-        pass
 
-    def run(self, servo, rpm, dt=0.02):
+    def run(self, servo, rpm, theta_imu_dot, dt=0.02):
         """ 
             Returns odom outputs: pos, orient, pos_dot, orient_dot
         """
 
         # Convert hardware signals into physical units
         speed = self.getSpeed(rpm)
-        angular_velocity = self.getAngularVelocity(speed, self.getSteeringAngle(servo))
         
-        yaw = np.cumsum(angular_velocity * dt_vescStateCallback)
+        # calc state of theta_dot and theta
+        theta_dot = self.getAngularVelocity(speed, self.getSteeringAngle(servo))
+        
+        #TODO: fuse odom theta w/ imu theta here
+        # rudimentary "sensor fusion": use IMU info instead of odom info
+        theta_dot = theta_imu_dot
 
-        x_dot = speed * np.cos(yaw)
-        y_dot = speed * np.sin(yaw)
+        theta = np.cumsum(theta_dot * dt_vescStateCallback)
+
+        # calc state of pos_dot and pos
+        x_dot = speed * np.cos(theta)
+        y_dot = speed * np.sin(theta)
         pos = np.hstack((np.cumsum(x_dot*dt)[:,np.newaxis], 
                          np.cumsum(y_dot*dt)[:,np.newaxis]))
 
-        return pos, yaw
+        pos_dot = np.hstack((x_dot[:,np.newaxis], y_dot[:,np.newaxis]))
+        state = pos, theta, pos_dot, theta_dot
+        
+        return state
 
 
